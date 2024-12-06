@@ -9,3 +9,66 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r}
+library(Lahman)
+library(ggplot2)
+head(HallOfFame, 3)
+
+HallOfFame %>% 
+  ggplot(aes(x = yearID, fill = inducted)) +
+  geom_bar() +
+  xlim(c(1936, 2022))
+```
+
+```{r}
+library(Lahman)
+library(rvest)
+library(dplyr)
+library(ggplot2)
+
+# Scrape 2024 data
+url <- "https://www.baseball-reference.com/awards/hof_2024.shtml"
+html <- read_html(url)
+tables <- html_table(html)
+
+# Process 2024 data
+hof_table <- tables[[1]]
+names(hof_table) <- c(
+  "Rank", "Name", "Year_on_Ballot", "Votes", "Vote_Pct", 
+  "HOFm", "HOFs", "Years", "WAR", "WAR7", "JAWS", "Jpos",
+  paste0("Batting_", 1:13),
+  paste0("Pitching_", 1:13),
+  "Pos_Summary"
+)
+
+bbwaa_2024 <- hof_table %>%
+  filter(Rank != "Rk") %>%
+  transmute(
+    playerID = tolower(gsub(" ", "", Name)),
+    yearID = 2024,
+    votedBy = "BBWAA",
+    ballots = 385,
+    needed = as.integer(0.75 * 385),
+    votes = as.integer(Votes),
+    inducted = ifelse(as.numeric(gsub("%", "", Vote_Pct)) >= 75, "Y", "N"),
+    category = "Player",
+    needed_note = NA_character_
+  )
+
+# Combine old and new data
+updated_hof <- bind_rows(HallOfFame, bbwaa_2024)
+
+# Create the plot with updated data
+updated_hof %>%
+  ggplot(aes(x = yearID, fill = inducted)) +
+  geom_bar() +
+  xlim(c(1936, 2024)) +  # Extended to include 2024
+  labs(
+    title = "Hall of Fame Voting Results (1936-2024)",
+    x = "Year",
+    y = "Number of Candidates",
+    fill = "Inducted"
+  )
+
+save(updated_hof, file = "HallOfFame-owenk.csv")
+```
