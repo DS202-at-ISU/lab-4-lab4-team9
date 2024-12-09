@@ -15,15 +15,15 @@ head(HallOfFame, 3)
 ```
 
 ```{r}
-# Load required libraries
+
 library(Lahman)
 library(ggplot2)
 library(tidyverse)
 
-# Inspect the structure of the existing Hall of Fame dataset
+
 head(HallOfFame, 5)
 
-# Plotting the existing data
+
 HallOfFame %>%
   ggplot(aes(x = yearID, fill = inducted)) +
   geom_bar() +
@@ -40,22 +40,22 @@ HallOfFame %>%
 ```
 
 ```{r}
-# Clean column names after scraping
+
 library(rvest)
 library(dplyr)
 
-# Scrape the webpage
+
 page <- read_html("https://www.baseball-reference.com/awards/hof_2024.shtml")
 
-# Extract the first table on the page
+
 hof_table <- page %>%
   html_node("table") %>%
   html_table()
 
-# Check column names
+
 colnames(hof_table)
 
-# Manually rename the columns if necessary
+
 colnames(hof_table) <- c(
   "Rank", "Name", "Year_on_Ballot", "Votes", "Vote_Pct",
   "HOFm", "HOFs", "Years", "WAR", "WAR7", "JAWS", "Jpos",
@@ -64,10 +64,10 @@ colnames(hof_table) <- c(
   "Pos_Summary"
 )
 
-# Ensure data has proper column names
+
 head(hof_table)
 
-# Filter out rows without valid player names
+
 hof_2024 <- hof_table %>%
   filter(!is.na(Name) & Name != "") %>% # Remove rows with missing or empty names
   transmute(
@@ -82,15 +82,14 @@ hof_2024 <- hof_table %>%
     needed_note = NA
   )
 
-# View the cleaned and prepared data
+
 head(hof_2024)
 ```
 
 ```{r}
-# Combine the 2024 data with the existing Hall of Fame dataset
+
 updated_hof <- bind_rows(HallOfFame, hof_2024)
 
-# Create an updated plot including 2024
 updated_hof %>%
   ggplot(aes(x = yearID, fill = inducted)) +
   geom_bar() +
@@ -107,10 +106,10 @@ updated_hof %>%
 ```
 
 ```{r}
-# Save the updated dataset to a file
+
 write.csv(updated_hof, file = "HallOfFame_BachNguyen.csv", row.names = FALSE)
 
-# Optional: Save RData format
+
 save(updated_hof, file = "HallOfFame_BachNguyen.RData")
 ```
 
