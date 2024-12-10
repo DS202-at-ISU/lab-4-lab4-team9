@@ -1,0 +1,81 @@
+---
+title: "progress-report-JackOlsan"
+author: "Jack Olsan"
+date: "2024-12-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#install.packages("Lahman")
+library(Lahman)
+library(dplyr)
+library(ggplot2)
+head(HallOfFame, 3)
+
+# Visualize Hall of Fame data with a bar plot of inductions over time
+HallOfFame %>%
+  ggplot(aes(x = yearID, fill = inducted)) +
+  geom_bar(stat = "count") + 
+  scale_x_continuous(limits = c(1936, 2022)) +
+  theme_minimal() +
+  labs(
+    title = "Hall of Fame Voting History (1936-2022)",
+    x = "Year",
+    y = "Number of Inductions",
+    fill = "Induction Status"
+  )
+```
+
+```{r}
+#install.packages("rvest")
+library(rvest)
+# Scrape 2024 Hall of Fame data from Baseball-Reference
+url_2024 <- "https://www.baseball-reference.com/awards/hof_2024.shtml"
+page_2024 <- read_html(url_2024)
+
+# Extract and clean the 2024 Hall of Fame table
+hof_2024_table <- html_table(page_2024)[[1]] %>%
+  setNames(c(
+    "Rank", "Player_Name", "Ballot_Year", "Votes", "Vote_Percentage",
+    "HOF_m", "HOF_s", "Years_in_MLB", "WAR", "WAR7", "JAWS", "Jpos",
+    paste0("Batting_", 1:13), paste0("Pitching_", 1:13), "Position_Summary"
+  )) %>%
+  filter(Rank != "Rk") %>%
+  mutate(
+    playerID = tolower(gsub(" ", "", Player_Name)),
+    yearID = 2024,
+    votedBy = "BBWAA",
+    ballots = 385,
+    needed_for_induction = as.integer(0.75 * ballots),
+    votes_cast = as.integer(Votes),
+    inducted = ifelse(as.numeric(gsub("%", "", Vote_Percentage)) >= 75, "Yes", "No"),
+    category = "Player",
+    needed_note = NA_character_
+  ) %>%
+  select(playerID, yearID, votedBy, ballots, inducted, category, needed_note)
+
+# Combine 2024 data with existing Hall of Fame dataset
+full_hof_data <- bind_rows(HallOfFame, hof_2024_table)
+
+
+# Plot Hall of Fame inductions with new 2024 data
+full_hof_data %>%
+  ggplot(aes(x = yearID, fill = inducted)) +
+  geom_bar(stat = "count") + 
+  scale_x_continuous(limits = c(1936, 2024)) +
+  theme_minimal() +
+  labs(
+    title = "Hall of Fame Voting Results (1936-2024)",
+    x = "Voting Year",
+    y = "Number of Votes",
+    fill = "Inducted"
+  )
+
+
+# Save the combined Hall of Fame data (including 2024) to a CSV file
+write.csv(full_hof_data, "HallOfFame_JackOlsan.csv", row.names = FALSE)
+```
